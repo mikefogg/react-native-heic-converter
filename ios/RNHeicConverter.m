@@ -27,37 +27,34 @@ RCT_EXPORT_METHOD(convert: (NSDictionary*) options
     NSString *extension = options[@"extension"];
     NSNumber* type = options[@"extensionType"];
     int extensionType = [type intValue];
-    
-    if ([self isEmpty: uri]) {
-        if ([self isHeic: uri]) {
-            NSString* encodeURI = [self encodeURI: uri];
-            UIImage* image = [self getImage: encodeURI];
-            NSData* data;
-            
-            switch (extensionType)
-            {
-                case 1:
-                    data = UIImagePNGRepresentation(image);
-                    break;
-                case 2:
-                    return resolve(@{
-                         @"success": @YES,
-                         @"base64": AS(@"data:image/png;base64,", [self encodeToBase64String: image])
-                     });
-                    break;
-                default:
-                    data = UIImageJPEGRepresentation(image, quality);
-                    break;
-            }
 
-            NSString* path = [self getPath: encodeURI extension: extension];
-            BOOL success = [data writeToFile: path atomically: YES];
-            if (!success) {
-                return resolve(@{@"success": @NO, @"error": WRITE_FAILED});
-            }
-            return resolve(@{@"success": @YES, @"path": path});
+    if ([self isEmpty: uri]) {
+        NSString* encodeURI = [self encodeURI: uri];
+        UIImage* image = [self getImage: encodeURI];
+        NSData* data;
+
+        switch (extensionType)
+        {
+            case 1:
+                data = UIImagePNGRepresentation(image);
+                break;
+            case 2:
+                return resolve(@{
+                     @"success": @YES,
+                     @"base64": AS(@"data:image/png;base64,", [self encodeToBase64String: image])
+                 });
+                break;
+            default:
+                data = UIImageJPEGRepresentation(image, quality);
+                break;
         }
-        return resolve(@{@"success": @NO, @"error": EXTENSION_FAILED});
+
+        NSString* path = [self getPath: encodeURI extension: extension];
+        BOOL success = [data writeToFile: path atomically: YES];
+        if (!success) {
+            return resolve(@{@"success": @NO, @"error": WRITE_FAILED});
+        }
+        return resolve(@{@"success": @YES, @"path": path});
     }
     return resolve(@{ @"success": @NO, @"error": EMPTY_PATH});
 }
@@ -78,7 +75,13 @@ RCT_EXPORT_METHOD(convert: (NSDictionary*) options
 
 -(BOOL) isHeic: (NSString*) uri
 {
-    NSString *ext = [uri pathExtension];
+		NSURL *url = [NSURL URLWithString:uri];
+		NSURLComponents *urlComponents = [[NSURLComponents alloc] initWithURL:url resolvingAgainstBaseURL:NO];
+		NSString *ext = [uri pathExtension];
+
+		urlComponents.query = nil; // Strip out query parameters.
+		NSLog(@"Result: %@", urlComponents.string); // Should print http://hostname.com/path
+
     return [ext caseInsensitiveCompare:@"heic"] == NSOrderedSame;
 }
 
